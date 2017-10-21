@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="theme-color" content="#600090">
+    <meta name="msapplication-navbutton-color" content="#600090">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#600090">
+    <link rel="shortcut icon" href="https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-person-128.png">
+    <link rel="alternate" type="application/atom+xml" title="Rabbit Hole" href="/atom.xml">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
+    <link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.css">
+    <title>
+        
+        iOS App如何启动(一)｜undefined
+        
+    </title>
+
+    <link rel="canonical" href="http://yoursite.com/2017/10/22/first/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/blog-style.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+</head>
+
+<style>
+
+    header.intro-header {
+        background-image: url('')
+    }
+</style>
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="" class="animated fadeIn">
+<!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top " id="nav-top" data-ispost = "true" data-istags="false
+" data-ishome = "false" >
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand animated pulse" href="/">
+                <span class="brand-logo">
+                    Rabbit Hole
+                </span>
+                's Blog
+            </a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <!-- /.navbar-collapse -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+					
+                    
+					
+					
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+//    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+<!-- Main Content -->
+
+<!--only post-->
+
+
+<img class="wechat-title-img"
+     src="">
+
+
+<style>
+    
+    header.intro-header {
+        background-image: url('')
+    }
+
+    
+</style>
+
+<header class="intro-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 text-center">
+                <div class="post-heading">
+                    <h1>iOS App如何启动(一)</h1>
+                    
+                    <span class="meta">
+                         作者 Simon Hsu
+                        <span>
+                          日期 2017-10-22
+                         </span>
+                    </span>
+                    <div class="tags text-center">
+                        
+                        <a class="tag" href="/tags/#-iOS -Optimize"
+                           title="-iOS -Optimize">-iOS -Optimize</a>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="post-title-haojen">
+        <span>
+            iOS App如何启动(一)
+        </span>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+            <!-- Post Container -->
+            <div class="col-lg-8 col-lg-offset-1 col-sm-9 post-container">
+                <h1 id="0x0-引子"><a href="#0x0-引子" class="headerlink" title="0x0 引子"></a>0x0 引子</h1><p><br></p>
+<p>之前iOS工程中已经进行了启动时间优化的工作，能直观看到的是App Delegate Call做了一些整理。但这次的契机在于，日志可能需要记录更多启动相关的内容，包括是否冷热启动，启动耗时，以及启动的触发点(点击图标，push, 后台代理唤醒等)，由此对相关内容做了一些了解和整理总结。</p>
+<p>本文主要介绍开发者可控的阶段，即相关系统初始化和准备工作已经完成，控制权交给开发者，从main函数开始执行到App UI开始展示。</p>
+<p><br></p>
+<h1 id="0x1-两种启动类型"><a href="#0x1-两种启动类型" class="headerlink" title="0x1 两种启动类型"></a>0x1 两种启动类型</h1><p><br><br>根据App进程是否在RAM中，可区分热启动和冷启动。</p>
+<ul>
+<li><strong>冷启动</strong>(cold launch)是指app进程不存在,即没有该进程相关的注册信息,也不在内存中。注意，通常进程不在内存不代表没这个内存，例如可以将某进程完整冲到SWAP,或能保存状态的虚拟机镜像。OS需要进行完整的一些列启动过程，fork进程，从外存读镜像到内存，初始化，移交执行权。下文如没有明确说明启动类型，默认指冷启动。</li>
+<li><strong>热启动</strong>(warm launch)是指app进程就驻在内存中，该App的UI不在前台显示，进程状态可能是激活的，可能是睡着的，OS将该进程激活，并放到前台。也就是没有了创建和初始化的过程，只有状态的切换。</li>
+</ul>
+<p>热启动的流程比较简单，对计算、IO的消耗少，通常时间很短。对于应用开发来说很重要，下文生命周期状态机会介绍，但通常不会成为瓶颈。</p>
+<p>冷启动包含了创建、加载、检查、初始化等复杂的过程，消耗大量的计算、IO资源，通常耗时比较久，是应用优化的一个重要领域。因此下文主要针对冷启动进行讨论。</p>
+<p><br></p>
+<h2 id="0x11-App进程与RAM"><a href="#0x11-App进程与RAM" class="headerlink" title="0x11 App进程与RAM"></a>0x11 App进程与RAM</h2><p>App要运行，进程必须在内存中。而冷启动过程非常复杂和耗时，那么我们就希望尽可能的让App以热启动的方式进行。那么这如何才能做到呢。</p>
+<p>我们希望App的进程尽量常驻于内存中，这样下次启动时，就可以以热启动的方式进入前台。</p>
+<p>首先，如何让App能常驻内存？ </p>
+<p>通常的触发点是，应用被置于后台，操作有很多：</p>
+<ul>
+<li>Home键返回</li>
+<li>SpringBoard 应用切换 </li>
+<li>打断跳出(来电，通知等)</li>
+<li>锁屏</li>
+<li>等</li>
+</ul>
+<p>也有一些操作是不会进入后台的，而是直接purge:</p>
+<ul>
+<li>用户主动kill</li>
+<li>程序主动/被动 kill</li>
+<li>等</li>
+</ul>
+<p>那么是不是置后台就一定会驻留在内存呢？</p>
+<blockquote>
+<p>并不是，通过在Info.plist种UIApplicationExitsOnSuspend设为YES，则App在进入后台后，App会直接退出，不同于直接purge在于，会回调-applicationWillTerminate:。</p>
+</blockquote>
+<p><br></p>
+<h2 id="0x12-进程驻留内存管理策略"><a href="#0x12-进程驻留内存管理策略" class="headerlink" title="0x12 进程驻留内存管理策略"></a>0x12 进程驻留内存管理策略</h2><p><strong>进程的内存管理策略是怎样的？</strong></p>
+<blockquote>
+<p><strong>OS会在有限的RAM空间中保持尽量多的常驻进程数量</strong>。</p>
+<ul>
+<li>增加App热启动概率，减少冷启动的次数</li>
+<li>当发生memory warning的时候，先回收内存占用多的App进程</li>
+</ul>
+</blockquote>
+<p>也就是说？</p>
+<blockquote>
+<ul>
+<li>App在前台时，只要是合理的内存时候，都是没有问题的</li>
+<li>在进入后台时，要尽量减少内存占用，从而获得更多常驻内存的机会</li>
+<li>另一方面，App在前台时，如果持续触发mem warning，其实是可以把其他App挤出RAM的</li>
+</ul>
+</blockquote>
+<p>该策略的在于充分利用RAM，提高RAM占用率。<br>秋豆麻袋！提高内存占用率不会导致性能下降，能耗增加吗？</p>
+<ul>
+<li>事实上，内存高占用带来的应用性能问题，主要是来自windows平台用户的刻板印象，windows的mem管理机制可能会导致长时间运行，高内存占用会导致应用性能问题；而XNU使用BSD的mem模块，非常成熟。</li>
+<li>另外一方面，来自有经验的用户可能认为，性能瓶颈会出现在高内存占用带来的SWAP Page In/Out。所幸的是，iOS没有SWAP Block(OSX有)。考虑只有8G，16G的外存的终端设备，不设立SWAP非常合理。</li>
+<li>那么，在能耗上，RAM的记忆颗粒只需要很少的电量就能保持记忆状态。理论上，保持记忆颗粒的状态的能耗，和其保持的具体说明状态是无关的。实践上，由我之前在计算所体系结构实验室做过相关的工作，通过实测得到的结果，内存占用对于内存待机的能耗几乎是没有影响的。如果有影响，则区别在于RAM条上的多个记忆模组是可以单独进入休眠模式的，但这带来的能耗影响不大，并且主要针对服务器内存。内存能耗的主要开销在于读写，而不是保持，其中主要来是擦写，也就是状态的改变。</li>
+<li>事实上，这已经成为一个最佳实践。较新的windows系统在平板设备上，会在关机状态保持内存状态，以便热启动开机。</li>
+<li>由此可得出结论是，对于iOS系统，用户手动kill后台进程，会导致大概率冷启动，其能耗成本远比内存常驻来的高。</li>
+<li>最后，springboard的任务切换器是遵循lru(Least recently used)倒序排列的，和内存最多驻留形成一个完整的管理策略。</li>
+</ul>
+<p><br></p>
+<h2 id="0x13-如何优化"><a href="#0x13-如何优化" class="headerlink" title="0x13 如何优化"></a>0x13 如何优化</h2><ul>
+<li>尽可能活着 —— 在后台减少内存占用<ul>
+<li>系统已经做了一系列释放工作，主要是释放CALayer的渲染数据，系统管理的图像缓存,其他系统管理的数据缓存。</li>
+<li>开发者手动释放资源文件，大的数据结构，一切可以在重启后重建的数据。</li>
+</ul>
+</li>
+<li>尽可能新生 —— 吸引用户启动<ul>
+<li>刚进入后台那会，和在后台被唤醒的时候，会有机会创建和更新一个”临终快照”,调用-snapshotViewAfterScreenUpdates:，可以通过创建”别有用心”的快照,勾引用户点击。</li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h2 id="0x14-其他"><a href="#0x14-其他" class="headerlink" title="0x14 其他"></a>0x14 其他</h2><ul>
+<li>安卓的某些厂商(三星)对任务启动做了相关优化。如果有足够内存可用，系统会讲最近Kill或退出的App进行预启动，预加载到RAM，从而实现接近热启动的效果。</li>
+<li>据我所知，目前iOS没有类似的优化出现。</li>
+</ul>
+<p><br></p>
+<h1 id="0x2-两个阶段"><a href="#0x2-两个阶段" class="headerlink" title="0x2 两个阶段"></a>0x2 两个阶段</h1><p><br></p>
+<p>HelloWorld是我们的第一个程序，而这个程序是从main开始执行的。对于写过C的开发很清楚，一个可执行文件，通常是以main函数作为入口的。系统做完一系列的加载和准备工作，找到main函数指针，设到PC上，然后程序开始跑。<br>对于iOS开发，也是这样。我们能接触到的最早的函数入口，也是main函数。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">// ObjC的main函数 </div><div class="line">// Swift隐藏了main 但也差不多</div><div class="line">int main(int argc, char *argv[])</div><div class="line">&#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>启动过程通过<strong>main函数</strong>拆分为两个阶段：</p>
+<ul>
+<li><strong>pre_main</strong>阶段: 系统准备阶段；</li>
+<li><strong>main</strong>阶段: 开发者获得控制权阶段。</li>
+</ul>
+<p>本文主要介绍第二阶段相关内容，第一阶段设计的内容太多，将单独开篇介绍。</p>
+<p><br></p>
+<h2 id="0x21-启动时间和Gold-Standard"><a href="#0x21-启动时间和Gold-Standard" class="headerlink" title="0x21 启动时间和Gold Standard"></a>0x21 启动时间和Gold Standard</h2><p><br></p>
+<blockquote>
+<p>直观地，启动时间是指，从系统开始创建进程到最终首页UI出现的消耗时间。</p>
+</blockquote>
+<p>在iOS平台上，启动过程伴随了启动动画，启动动画最少250ms。<br><br><br><strong>根据苹果提供的行业标准，app的启动时间最好能少于400ms。</strong></p>
+<p><br></p>
+<h1 id="0x3-第二阶段-–-熟悉的起点"><a href="#0x3-第二阶段-–-熟悉的起点" class="headerlink" title="0x3 第二阶段 – 熟悉的起点"></a>0x3 第二阶段 – 熟悉的起点</h1><p><br></p>
+<h2 id="0x31-生命周期状态机"><a href="#0x31-生命周期状态机" class="headerlink" title="0x31 生命周期状态机"></a>0x31 生命周期状态机</h2><p>APP的状态机:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">// SDK定义的App状态只有三种，但实际比这多一些</div><div class="line"></div><div class="line">typedef NS_ENUM(NSInteger, UIApplicationState) &#123;</div><div class="line">    UIApplicationStateActive,</div><div class="line">    UIApplicationStateInactive,</div><div class="line">    UIApplicationStateBackground</div><div class="line">&#125; NS_ENUM_AVAILABLE_IOS(4_0);</div></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li>not running</li>
+<li>inactive: app在前台运行，但不能接收事件。(例如系统级弹窗：低电量提示，闹钟等)</li>
+<li>active: 前台运行并可以接收事件。</li>
+<li>background: app在后台，并且可以执行代码，停留在改状态一段时间会被挂起。</li>
+<li>suspended: app在后台，但不能执行代码，处于挂起状态。如果在挂起状态被OS purge不会收到任何通知。</li>
+</ul>
+</blockquote>
+<p><img src="http://oy2iaga0t.bkt.clouddn.com/img/app_launch_1/app_states.png" width="400"> </p>
+<p><strong>注意</strong>：</p>
+<blockquote>
+<ul>
+<li>很多iOS开发者通过app delegate call来认识app状态，从而以为foregrand是一个状态。其实前台拆分为了inactive, active两个状态</li>
+<li>其实background也是分为了两个状态，后台激活状态，和后台挂起状态，后台激活状态只会停留一小会。可以通过一些技术手段延长后台激活状态时间，不在本文讨论范围。在其被挂起前，确实有一段时间可以执行代码，如果需要，可以通过UIApplication的backgroundTimeRemaining属性进行查询。</li>
+<li>system call导致的app停止不在该状态机转换逻辑内，如crash等。</li>
+</ul>
+</blockquote>
+<p><br></p>
+<h2 id="0x32-冷启动流程"><a href="#0x32-冷启动流程" class="headerlink" title="0x32 冷启动流程"></a>0x32 冷启动流程</h2><p><br></p>
+<p><img src="http://oy2iaga0t.bkt.clouddn.com/img/app_launch_1/app_launch_fg_2x.png" width="700"> </p>
+<blockquote>
+<ul>
+<li>由上面的Main()函数实现我们已经知道了，创建一个autorealsepool，并在其中调用UIApplicationMain()</li>
+<li><p>实际UIApplicationMain()下面的流程也正是该函数的执行逻辑:</p>
+<ol>
+<li>创建UIApplication对象 </li>
+<li>创建App Delegate对象并设置代理<ol>
+<li>加载并读取Info.plist等配置文件</li>
+<li>加载nib，图片等UI资源，如mainwindow</li>
+</ol>
+</li>
+<li>创建Main Runloop,并启动</li>
+<li>回调-willFinishLaunch：<ol>
+<li>做一些初始化 (restore UI state)</li>
+<li>回调-didFinishLaunch：</li>
+<li>设置App状态为Active</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>需要注意的是冷启动直接从not running 进入了Acitve状态，而没有从inactive转换。</p>
+</li>
+</ul>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//</div><div class="line">// cold launch</div><div class="line">// 冷启动直接从not running 进入了Acitve状态，而没有从inactive转换。</div><div class="line">//</div><div class="line">2017-10-19 20:35:55.282564+0800 DemoLaunch[2929:654960] APP STATE 🐰🐰🐰🐰🐰🐰 ===&gt; INACTIVE</div><div class="line">2017-10-19 20:35:55.282665+0800 DemoLaunch[2929:654960] 🐽🐽🐽🐽🐽🐽 ====&gt;&gt; willFinishLaunchingWithOptions：(null)</div><div class="line">2017-10-19 20:35:55.282872+0800 DemoLaunch[2929:654960] APP STATE 🐰🐰🐰🐰🐰🐰 ===&gt; INACTIVE</div><div class="line">2017-10-19 20:35:55.282962+0800 DemoLaunch[2929:654960] 🐽🐽🐽🐽🐽🐽 ====&gt;&gt; didFinishLaunchingWithOptions：(null)</div><div class="line">2017-10-19 20:35:55.287526+0800 DemoLaunch[2929:654960] APP STATE 🐰🐰🐰🐰🐰🐰 ===&gt; ACTIVE</div><div class="line">2017-10-19 20:35:55.287641+0800 DemoLaunch[2929:654960] 🐽🐽🐽🐽🐽🐽 ====&gt;&gt; applicationDidBecomeActive</div></pre></td></tr></table></figure>
+<p><br></p>
+<h2 id="0x33-进入后台状态"><a href="#0x33-进入后台状态" class="headerlink" title="0x33 进入后台状态"></a>0x33 进入后台状态</h2><p><br></p>
+<p>和启动关系不大，看看就好</p>
+<p><img src="http://oy2iaga0t.bkt.clouddn.com/img/app_launch_1/app_launch_bg_2x.png" width="700"> </p>
+<p><br></p>
+<h2 id="0x34-全画幅"><a href="#0x34-全画幅" class="headerlink" title="0x34 全画幅"></a>0x34 全画幅</h2><p><img src="http://oy2iaga0t.bkt.clouddn.com/img/app_launch_1/app_delegate_calls.png"> </p>
+<blockquote>
+<p>上图归纳总结得很好，可以很清晰地看出，如果需要对启动入口做日志的话，应该在-willLaunchWithOptions:做拦截。</p>
+</blockquote>
+<p><br><br><br></p>
+<h1 id="0x4-Where-to-Go"><a href="#0x4-Where-to-Go" class="headerlink" title="0x4 Where to Go"></a>0x4 Where to Go</h1><p>之后谈论启动的第一阶段，也就是进程创建，镜像加载，环境准备等相关的内容。</p>
+<p><br><br><br></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>【1】<a href="https://developer.apple.com/library/content/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/StrategiesforHandlingAppStateTransitions/StrategiesforHandlingAppStateTransitions.html" target="_blank" rel="external">https://developer.apple.com/library/content/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/StrategiesforHandlingAppStateTransitions/StrategiesforHandlingAppStateTransitions.html</a><br>【2】<a href="https://developer.apple.com/library/content/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/StrategiesforHandlingAppStateTransitions/StrategiesforHandlingAppStateTransitions.html" target="_blank" rel="external">https://developer.apple.com/library/content/documentation/iPhone/Conceptual/iPhoneOSProgrammingGuide/StrategiesforHandlingAppStateTransitions/StrategiesforHandlingAppStateTransitions.html</a><br>【3】<a href="https://www.cocoanetics.com/2010/07/understanding-ios-4-backgrounding-and-delegate-messaging/" target="_blank" rel="external">https://www.cocoanetics.com/2010/07/understanding-ios-4-backgrounding-and-delegate-messaging/</a></p>
+
+                <hr>
+                
+
+                <ul class="pager">
+                    
+                    
+                </ul>
+
+                
+
+                
+
+
+                <!--加入新的评论系统-->
+                
+            </div>
+
+            <div class="hidden-xs col-sm-3 toc-col">
+                <div class="toc-wrap">
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#0x0-引子"><span class="toc-text">0x0 引子</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x1-两种启动类型"><span class="toc-text">0x1 两种启动类型</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-App进程与RAM"><span class="toc-text">0x11 App进程与RAM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-进程驻留内存管理策略"><span class="toc-text">0x12 进程驻留内存管理策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-如何优化"><span class="toc-text">0x13 如何优化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x14-其他"><span class="toc-text">0x14 其他</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x2-两个阶段"><span class="toc-text">0x2 两个阶段</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-启动时间和Gold-Standard"><span class="toc-text">0x21 启动时间和Gold Standard</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x3-第二阶段-–-熟悉的起点"><span class="toc-text">0x3 第二阶段 – 熟悉的起点</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x31-生命周期状态机"><span class="toc-text">0x31 生命周期状态机</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x32-冷启动流程"><span class="toc-text">0x32 冷启动流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x33-进入后台状态"><span class="toc-text">0x33 进入后台状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x34-全画幅"><span class="toc-text">0x34 全画幅</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x4-Where-to-Go"><span class="toc-text">0x4 Where to Go</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-text">参考</span></a></li></ol></li></ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Sidebar Container -->
+
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+
+                <!-- Friends Blog -->
+                
+            </div>
+        </div>
+
+    </div>
+</article>
+
+
+
+
+
+
+
+<!-- Footer -->
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 text-center">
+                <br>
+                <ul class="list-inline text-center">
+                
+                
+                
+
+                
+
+                
+
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Rabbit Hole 2017
+                    <br>
+                    <span id="busuanzi_container_site_pv" style="font-size: 12px;">PV: <span id="busuanzi_value_site_pv"></span> Times</span>
+                    <br>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/blog.js"></script>
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("http://yoursite.com/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+<!-- swiftype -->
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+  (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+  e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install','','2.0.0');
+</script>
+
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<!--wechat title img-->
+<img class="wechat-title-img" src="">
+</body>
+
+</html>
