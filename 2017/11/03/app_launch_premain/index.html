@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="theme-color" content="#600090">
+    <meta name="msapplication-navbutton-color" content="#600090">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#600090">
+    <link rel="shortcut icon" href="https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-person-128.png">
+    <link rel="alternate" type="application/atom+xml" title="Rabbit Hole" href="/atom.xml">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
+    <link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.css">
+    <title>
+        
+        iOS App如何启动(二) pre_main｜undefined
+        
+    </title>
+
+    <link rel="canonical" href="http://yoursite.com/2017/11/03/app_launch_premain/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/blog-style.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+</head>
+
+<style>
+
+    header.intro-header {
+        background-image: url('')
+    }
+</style>
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="" class="animated fadeIn">
+<!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top " id="nav-top" data-ispost = "true" data-istags="false
+" data-ishome = "false" >
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand animated pulse" href="/">
+                <span class="brand-logo">
+                    Rabbit Hole
+                </span>
+                's Blog
+            </a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <!-- /.navbar-collapse -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+					
+                    
+					
+					
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+//    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+<!-- Main Content -->
+
+<!--only post-->
+
+
+<img class="wechat-title-img"
+     src="">
+
+
+<style>
+    
+    header.intro-header {
+        background-image: url('')
+    }
+
+    
+</style>
+
+<header class="intro-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 text-center">
+                <div class="post-heading">
+                    <h1>iOS App如何启动(二) pre_main</h1>
+                    
+                    <span class="meta">
+                         作者 Simon Hsu
+                        <span>
+                          日期 2017-11-03
+                         </span>
+                    </span>
+                    <div class="tags text-center">
+                        
+                        <a class="tag" href="/tags/#iOS Optimize"
+                           title="iOS Optimize">iOS Optimize</a>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="post-title-haojen">
+        <span>
+            iOS App如何启动(二) pre_main
+        </span>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+            <!-- Post Container -->
+            <div class="col-lg-8 col-lg-offset-1 col-sm-9 post-container">
+                <h1 id="0x0-回顾"><a href="#0x0-回顾" class="headerlink" title="0x0 回顾"></a>0x0 回顾</h1><p>之前介绍了从main入口开始的App启动过程，以此展开了关于App的冷启动、热启动异同，App生命周期转换的讨论，并提出了优化建议。本文将介绍在main函数之前，App启动所经历的故事。</p>
+<h1 id="0x1-几个名词-令人头大的各种”库”"><a href="#0x1-几个名词-令人头大的各种”库”" class="headerlink" title="0x1 几个名词 - 令人头大的各种”库”"></a>0x1 几个名词 - 令人头大的各种”库”</h1><p>安装App的过程，简单地说就是把App的相关文件保存到磁盘，并完成相关注册等工作。而App的启动，则是将app相关的资源加载到内存，并运行。这里面包括了可执行文件，各种动态库，静态库，甚至共享库，好包括了各类资源文件等。<br>为了方便讨论，请搞清楚一些名词和概念。</p>
+<h2 id="0x11-什么是Image？"><a href="#0x11-什么是Image？" class="headerlink" title="0x11 什么是Image？"></a>0x11 什么是Image？</h2><p>我们经常会说，”load一个Image”或者”dump一个Image”，这里的Image当然不是一个图片资源，那么这里的Image是什么呢?通常在中文中夹杂英文单词，来表达中文没有对应或很难明确表达的概念。Image正是如此。可能的中文翻译为”镜像”或”映像”(台湾译)。<br>什么是”镜像”(mirror)? 镜像通常含义是说和”完全复刻”的影像，照镜子时，左右的图像是实际完全一致的。在计算机世界中是指，在不同的媒介上的数据，是完全一致的。例如某一个文件，在磁盘上和光盘上是完全一致的。例如我们去一些linux发行版的获取页，会看到有邮寄光盘的方式，也会发现有下载链接的方式，通常在下载链接的前面会写有”mirror”的字样,表示这个文件(比如iso),和邮寄的光盘上的数据是完全一致的。下载下来的iso，通过烧录到U盘或光盘本质是完全一样的。数据完全一致就是镜像，这种解释，不是坑爹么？到底是缺少了什么。<br>最直接的类比是光碟游戏，比如ps，xbox平台的游戏光盘，插入主机之后，主机可以直接运行。有不法商家会拔取其镜像，自行烧录盗版碟贩卖。通过解压一个iso文件，我们可以看到熟悉的目录结构，有资源，有执行文件，有说明文件等等。但我们不会说，我复制了一份数据盘(例如一个存文档的优盘)，可以称之为一份镜像。<br>通过上面的分析，可以给出定义了。Image(镜像)，是一个包，这个包定义了某种数据的组织结构，其中必须包含可引导的执行入口的文件，也可能包含其他相关资源。</p>
+<h2 id="0x12-什么是可执行文件，静态库，动态库，私有库，共享库？"><a href="#0x12-什么是可执行文件，静态库，动态库，私有库，共享库？" class="headerlink" title="0x12 什么是可执行文件，静态库，动态库，私有库，共享库？"></a>0x12 什么是可执行文件，静态库，动态库，私有库，共享库？</h2><p>定义了Image，我们知道了Image包里面可能会有各种数据或文件，其中肯定包含的一类是bin文件，因为镜像必须包括可被引导和执行的文件。还有可能包括资源文件。很多资源文件是二进制的，例如照片，视频等。但通常我们只将含有机器码的文件成为bin文件。那么除了可执行文件，image中，还会有的是动态库文件。<br>动态库，静态库，共享库，第三方库这类名词说起来也很炫酷，到底什么是库？列举的这些库又有什么不同呢？</p>
+<ul>
+<li><p><strong>库</strong>通常指，提供一些功能的调用接口，但其本身无法被引导，没有执行入口，只具有过程片段的模块(源码或目标文件)。</p>
+<p>相对地，</p>
+</li>
+<li><strong>可执行文件</strong>通常指，具有可被引导执行入口(通常是main)的机器码二进制目标文件(target)。</li>
+</ul>
+<p>最熟悉的helloworld, 引入了标准库stdlib，我们使用了print()函数进行打印。但stdlib本身，是无法被<strong>单独</strong>执行的，因为它没有函数入口(main),不是可执行文件。</p>
+<ul>
+<li>除了自己编写的和系统提供的，引入由其他厂商提供的库，称为<strong>第三方库</strong>。</li>
+</ul>
+<p>使用库提供的功能可以给调用者带来很多便利，专注于核心逻辑的编写，甚至简单更新库，获得性能的提升。因此，我们编写的可执行程序 或者库，会对引入的库产生依赖，这些被依赖库根据其加载方式的不同，被区分为静态库和动态库。</p>
+<ul>
+<li><p><strong>静态库</strong>之所以说它是静态的，是因为静态库作为依赖会被打包在依赖的bin文件中。通常在链接过程中，由于该库是会被打包在同一个文件中的，因此其符号所对应的偏移地址是固定的，因此可以直接用地址进行替换。一旦整个编译链接完成，符号解析完成，并固定下来。静态库的一切都是在编译链接期就确定下来的，因此是静态的。</p>
+</li>
+<li><p><strong>动态库</strong>相对于静态库，不会包含在链接导出的文件中，而是在运行时动态加载。依赖它的bin文件，在引用它的地方，都建立了一套符号索引。当程序执行到某个符号处，发现该符号属于一个没有加载的动态库时，就会将该动态库进行加载，并解析符号，映射到加载后的动态库的偏移地址上，称之为“绑定”的过程。完成动态库加载之后，再正常地执行下去。常见的动态库有.so(linux) .dll(windows) .dylib(xnu)等</p>
+</li>
+<li><p><strong>共享动态库</strong>，动态库是独立的文件,它可以在运行时加载和绑定，那么理论上就可以被不同进程复用和共享。相对地，不可以被多个进程复用和共享的称为<strong>私有动态库</strong>。例如在所有App中都会使用的UIKit等系统动态库，如果每个App都作为静态库打包，app的体积会变大，加载会变慢。在iOS中，系统的提供的框架，通常是共享动态库。而我们自己引入的动态库，都是私有的。</p>
+</li>
+</ul>
+<h2 id="0x13-什么是mach-o-Framework-Bundle-Universal-File"><a href="#0x13-什么是mach-o-Framework-Bundle-Universal-File" class="headerlink" title="0x13 什么是mach-o, Framework, Bundle, Universal File"></a>0x13 什么是mach-o, Framework, Bundle, Universal File</h2><p>mach-o是苹果的可执行文件。根据上文的定义，mach-o可以被引导，具有执行入口。</p>
+<p>编写一个helloworld,并在mac上执行编译:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"Hello World!\n"</span>);</div><div class="line">    <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>通过编译获得目标文件hello<br><br><br>查看目标文件hello布局: #xcrun size -x -l -m hello</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">Segment __PAGEZERO: 0x100000000 (vmaddr 0x0 fileoff 0)</div><div class="line">Segment __TEXT: 0x1000 (vmaddr 0x100000000 fileoff 0)</div><div class="line">	Section __text: 0x34 (addr 0x100000f50 offset 3920)</div><div class="line">	Section __stubs: 0x6 (addr 0x100000f84 offset 3972)</div><div class="line">	Section __stub_helper: 0x1a (addr 0x100000f8c offset 3980)</div><div class="line">	Section __cstring: 0xe (addr 0x100000fa6 offset 4006)</div><div class="line">	Section __unwind_info: 0x48 (addr 0x100000fb4 offset 4020)</div><div class="line">	total 0xaa</div><div class="line">Segment __DATA: 0x1000 (vmaddr 0x100001000 fileoff 4096)</div><div class="line">	Section __nl_symbol_ptr: 0x10 (addr 0x100001000 offset 4096)</div><div class="line">	Section __la_symbol_ptr: 0x8 (addr 0x100001010 offset 4112)</div><div class="line">	total 0x18</div><div class="line">Segment __LINKEDIT: 0x1000 (vmaddr 0x100002000 fileoff 8192)</div><div class="line">total 0x100003000</div></pre></td></tr></table></figure>
+<p>可以看出获取到很多信息:</p>
+<ol>
+<li>一个mach-o程序由多个SEGMENT(段)组成，每个segment下，由多个secion（节）组成。</li>
+<li>SEGMENT全部大写，section全部小写。</li>
+<li>我们能看到的SEGMENT有四个:<strong>PAGEZERO,</strong>TEXT,<strong>DATA,</strong>LINKEDIT<ol>
+<li>__PAGEZERO是低址零页段，可以看到它在虚拟内存空间的地址是0x0，大小是4GB。它在macho中的地址也是0x0,而挨着它的__TEXT在文件内地址也是0x0，说明该SEGMENT并不存在文件中。这个区域是做什么的呢，简单理解是留给NULL的，该区域是不可访问的区域，一旦访问就会出现EXC_BAD_ACCESS错误，很熟悉了。也就是说该区域只存在逻辑地址空间，仅做映射，在实际运行中，也不会被加载进内存。</li>
+<li>__TEXT是静态文本段，包括了头文件,代码，符号常量等。该区域的权限是(rx)，是不可修改的区域。</li>
+<li>__DATA是数据区，权限是(rw)，可以修改。存放了可被修改的数据.当前看到下面的两个区是存放动态链接绑定后的地址的。</li>
+<li><em>\</em>\LINKEDIT包含了所有链接器生成的数据。</li>
+</ol>
+</li>
+<li>每个段的大小都是4KB的倍数，这是内存页的大小，方便内存管理。</li>
+<li><p>__text区地址是0x100000f50，__TEXT段的起始地址(0x100000000)。文件偏移也有间隙。为什么会这样。因为这段mach-o文件的开头就是<strong>header</strong>部分。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">/usr/include/mach-o/header.h</div><div class="line"> </div><div class="line"> <span class="comment">// Constant for the magic field of the mach_header_64 (64-bit architectures)</span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> MH_MAGIC_64 0xfeedfacf <span class="comment">/* the 64-bit mach magic number */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> MH_CIGAM_64 0xcffaedfe <span class="comment">/* NXSwapInt(MH_MAGIC_64) */</span></span></div><div class="line"></div><div class="line"> <span class="comment">/*</span></div><div class="line"><span class="comment"> * The 64-bit mach header appears at the very beginning of object files for</span></div><div class="line"><span class="comment"> * 64-bit architectures.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mach_header_64</span> &#123;</span></div><div class="line">	<span class="keyword">uint32_t</span>	magic;		<span class="comment">/* mach magic number identifier */</span></div><div class="line">	<span class="keyword">cpu_type_t</span>	cputype;	<span class="comment">/* cpu specifier */</span></div><div class="line">	<span class="keyword">cpu_subtype_t</span>	cpusubtype;	<span class="comment">/* machine specifier */</span></div><div class="line">	<span class="keyword">uint32_t</span>	filetype;	<span class="comment">/* type of file */</span></div><div class="line">	<span class="keyword">uint32_t</span>	ncmds;		<span class="comment">/* number of load commands */</span></div><div class="line">	<span class="keyword">uint32_t</span>	sizeofcmds;	<span class="comment">/* the size of all the load commands */</span></div><div class="line">	<span class="keyword">uint32_t</span>	flags;		<span class="comment">/* flags */</span></div><div class="line">	<span class="keyword">uint32_t</span>	reserved;	<span class="comment">/* reserved */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">        ; Segment __TEXT</div><div class="line">        ; Range: [0x100000000; 0x100001000[ (4096 bytes)</div><div class="line">        ; File offset : [0; 4096[ (4096 bytes)</div><div class="line">        ; Permissions: readable / executable</div><div class="line"></div><div class="line">                             ; </div><div class="line">                             ; MachO Header</div><div class="line">                             ; </div><div class="line">                     __mh_execute_header:</div><div class="line">0000000100000000         struct __macho_header64 &#123;</div><div class="line">                             0xfeedfacf,                          // mach magic number identifier</div><div class="line">                             0x1000007,                           // cpu specifier</div><div class="line">                             0x80000003,                          // machine specifier</div><div class="line">                             0x2,                                 // type of file</div><div class="line">                             15,                                  // number of load commands</div><div class="line">                             1200,                                // the size of all the load commands</div><div class="line">                             0x200085,                            // flags</div><div class="line">                             0x0                                  // reserved</div><div class="line">                         &#125;</div><div class="line">                             ; </div><div class="line">                             ; Load Command 0</div><div class="line">                             ; </div><div class="line">0000000100000020         struct __macho_segment_command_64 &#123;</div><div class="line">                             LC_SEGMENT_64,                       // LC_SEGMENT_64</div><div class="line">                             0x48,                                // includes sizeof section_64 structs</div><div class="line">                             &quot;__PAGEZERO&quot;, 0, 0, 0, 0, 0, 0,      // segment name</div><div class="line">                             0x0,                                 // memory address of this segment</div><div class="line">                             0x100000000,                         // memory size of this segment</div><div class="line">                             0x0,                                 // file offset of this segment</div><div class="line">                             0x0,                                 // amount to map from the file</div><div class="line">                             0x0,                                 // maximum VM protection</div><div class="line">                             0x0,                                 // initial VM protection</div><div class="line">                             0x0,                                 // number of sections in segment</div><div class="line">                             0x0                                  // flags</div><div class="line">                         &#125;</div><div class="line">                             ; </div><div class="line">                             ; Load Command 1</div><div class="line">                             ; </div><div class="line">                             </div><div class="line"> ...</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><br><br><br><br>有上面的代码片段和反编译信息可知：</p>
+<ol>
+<li>mach-o的头部包括了一个加载命令的序列。</li>
+<li>其中的第一条包含了一些基本信息，以一个魔法数字开头，标示了文件类型，并且制定了架构类型，加载命令的数量等。</li>
+<li>随后的加载命令从设立零页段开始，依次执行，并进行初始化，具体不表。</li>
+<li>加载完成后，执行找到函数入口开始执行，可以看到main的地址，正是header的结束，__text节的起始地址。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">      ; Section __text</div><div class="line">      ; Range: [<span class="number">0x100000f50</span>; <span class="number">0x100000f84</span>[ (<span class="number">52</span> bytes)</div><div class="line">      ; File offset : [<span class="number">3920</span>; <span class="number">3972</span>[ (<span class="number">52</span> bytes)</div><div class="line">      ; ================ B E G I N N I N G   O F   P R O C E D U R E ================</div><div class="line">      _main:</div><div class="line"><span class="number">0000000100000f</span>50         push       rbp</div><div class="line"><span class="number">0000000100000f</span>51         mov        rbp, rsp</div><div class="line"><span class="number">0000000100000f</span>54         sub        rsp, <span class="number">0x20</span></div><div class="line"><span class="number">0000000100000f</span>58         lea        rax, qword [<span class="number">0x100000fa6</span>]                    ; <span class="string">"Hello World!\\n"</span></div><div class="line"><span class="number">0000000100000f</span>5f         mov        dword [rbp+var_4], <span class="number">0x0</span></div><div class="line"><span class="number">0000000100000f</span>66         mov        dword [rbp+var_8], edi</div><div class="line"><span class="number">0000000100000f</span>69         mov        qword [rbp+var_10], rsi</div><div class="line"><span class="number">0000000100000f</span>6d         mov        rdi, rax                                    ; argument <span class="string">"format"</span> <span class="keyword">for</span> method imp___stubs__printf</div><div class="line"><span class="number">0000000100000f</span>70         mov        al, <span class="number">0x0</span></div><div class="line"><span class="number">0000000100000f</span>72         call       imp___stubs__printf</div><div class="line"><span class="number">0000000100000f</span>77         xor        ecx, ecx</div><div class="line"><span class="number">0000000100000f</span>79         mov        dword [rbp+var_14], eax</div><div class="line"><span class="number">0000000100000f</span>7c         mov        eax, ecx</div><div class="line"><span class="number">0000000100000f</span>7e         add        rsp, <span class="number">0x20</span></div><div class="line"><span class="number">0000000100000f</span>82         pop        rbp</div><div class="line"><span class="number">0000000100000f</span>83         ret</div></pre></td></tr></table></figure>
+<p>综上所述，macho的基本布局如下图：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">               &lt; MACH-O LAYOUT &gt;</div><div class="line"></div><div class="line">    __TEXT +--------------------------+</div><div class="line">           | __mh_execute_header      |</div><div class="line">           +--------------------------+</div><div class="line">           | __text                   |</div><div class="line">           | __cstring                |</div><div class="line">           | ...                      |</div><div class="line">           |                          |</div><div class="line">    __DATA +--------------------------+</div><div class="line">           |                          |</div><div class="line">           | __nl_symbol_ptr          |</div><div class="line">           | __la_symbol_ptr          |</div><div class="line">           | ...                      |</div><div class="line">           |                          |</div><div class="line">__LINKEDIT +--------------------------+</div><div class="line">           |                          |</div><div class="line">           |                          |</div><div class="line">           |                          |</div><div class="line">           +--------------------------+</div></pre></td></tr></table></figure>
+<h2 id="0x13-Universal-File"><a href="#0x13-Universal-File" class="headerlink" title="0x13 Universal File"></a>0x13 Universal File</h2><p>Universal File是苹果定义的Fat binary。</p>
+<ul>
+<li>之所以叫它胖(FAT)，是因为它起始是包含了多个架构的可执行文件；</li>
+<li>文件头部有fat header，指向不同架构区域的便宜；</li>
+<li>方便一个发行包运行于多个架构的场景，例如在不同iOS设备上跑同一个App</li>
+<li>根据标准，可以是一个bundle</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">+--------------------------------+</div><div class="line">|         fat header             |</div><div class="line">+--------------------------------+</div><div class="line">|                                |</div><div class="line">|            ARMv7               |</div><div class="line">|                                |</div><div class="line">|                                |</div><div class="line">+--------------------------------+</div><div class="line">|                                |</div><div class="line">|           ARMv7s               |</div><div class="line">|                                |</div><div class="line">|                                |</div><div class="line">+--------------------------------+</div><div class="line">|                                |</div><div class="line">|                                |</div><div class="line">|            ARM64               |</div><div class="line">|                                |</div><div class="line">+--------------------------------+</div></pre></td></tr></table></figure>
+<h2 id="0x14-Bundle-和Framework"><a href="#0x14-Bundle-和Framework" class="headerlink" title="0x14 Bundle 和Framework"></a>0x14 Bundle 和Framework</h2><ul>
+<li><p>苹果对<strong>Bundle</strong>的定义就是在磁盘上组织代码和资源的目录形式。<br>确实，符合苹果定义的Bundle标准的目录，就会被OSX识别为一个bundle，可以通过show package contents或cd直接进入目录查看其中内容。</p>
+</li>
+<li><p>例如APP的Bundle目录结构为</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">+------------------------------------------+</div><div class="line">|                                          |</div><div class="line">|  foobar.bundle                           |</div><div class="line">|       +                                  |</div><div class="line">|       |   +--+ Contents                  |</div><div class="line">|       |   |        +                     |</div><div class="line">|       +---+        |   +---+ Info.plist  |</div><div class="line">|           |        +---+                 |</div><div class="line">|           |            |                 |</div><div class="line">|           +--+         +---+ foobar      |</div><div class="line">|                        |                 |</div><div class="line">|                        +---+             |</div><div class="line">|                                          |</div><div class="line">+------------------------------------------+</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">常见framework bundle结构</div><div class="line"></div><div class="line">MyFramework.framework/</div><div class="line">    MyFramework  -&gt; Versions/Current/MyFramework</div><div class="line">    Resources    -&gt; Versions/Current/Resources</div><div class="line">    Versions/</div><div class="line">        A/</div><div class="line">            MyFramework</div><div class="line">            Resources/</div><div class="line">                English.lproj/</div><div class="line">                    InfoPlist.strings</div><div class="line">                Info.plist</div><div class="line">        B/</div><div class="line">            MyFramework</div><div class="line">            Resources/</div><div class="line">                English.lproj/</div><div class="line">                    InfoPlist.strings</div><div class="line">                Info.plist</div><div class="line">        Current  -&gt; B</div><div class="line">        </div><div class="line">REF: https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/FrameworkAnatomy.html#//apple_ref/doc/uid/20002253-BAJEJJAB</div></pre></td></tr></table></figure>
+<ul>
+<li>在Apple开发的语境下，<strong>Framework</strong>是指以Bundle形式组织的共享包，其可以包含动态库文件，各类资源，甚至自己的工程配置和多版本。一般就是说一个带资源包的动态库。</li>
+<li>我们查看App Store.app这个Bundle的Info.plist,可以找到CFBundleExecutable这个键值对，这里制定了这个bundle是一个可执行的Bundle,其执行文件是Contents目录下App Store这个文件。现在我们知道系统是怎么找到可执行文件或动态库文件了。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">/Application/App Store.app/Contents/Info.plist</div><div class="line">&lt;plist version=&quot;1.0&quot;&gt;</div><div class="line">&lt;dict&gt;</div><div class="line">	...</div><div class="line">	&lt;key&gt;CFBundleExecutable&lt;/key&gt;</div><div class="line">	&lt;string&gt;App Store&lt;/string&gt;</div><div class="line">	...</div><div class="line">&lt;/dict&gt;</div><div class="line">&lt;/plist&gt;</div></pre></td></tr></table></figure>
+<h1 id="0x2-OS内存概述"><a href="#0x2-OS内存概述" class="headerlink" title="0x2 OS内存概述"></a>0x2 OS内存概述</h1><h2 id="0x21-史前时代"><a href="#0x21-史前时代" class="headerlink" title="0x21 史前时代"></a>0x21 史前时代</h2><p>代码运行必须要加载到内存中。在”史前时代”,操作系统使用物理内存使用直接映射的关系。也就是程序会被加载到指定的连续物理内存地址,并且程序的内存使用地址不能超出物理内存的地址空间。</p>
+<p>os把程序镜像加载到内存中，并且把pc设置到程序的第一条执行代码的地址，于是就开始执行，非常简单。</p>
+<p>但它存在了太多问题：</p>
+<ul>
+<li>对于开发者，直接面对物理内存编程，依赖严重；</li>
+<li>几乎不能运行多任务；</li>
+<li>内存使用限制高，利用率低；</li>
+<li>物理内存访问集中在低址区，影响性能寿命；</li>
+<li>其他</li>
+</ul>
+<p>但还是有存在的场景：</p>
+<ul>
+<li>直接映射简单高效在一些嵌入式设备和os上，还会使用这种内存管理方式。</li>
+</ul>
+<h2 id="0x22-VM"><a href="#0x22-VM" class="headerlink" title="0x22 VM"></a>0x22 VM</h2><p>如何解决直接内存映射存在诸多问题？</p>
+<blockquote>
+<p>软件开发中的问题，都可以通过增加一个抽象层来解决。</p>
+</blockquote>
+<p>根据软件领域的真理，我们可以增加一个抽象层，其实是一个硬件抽象层，建立一个逻辑上的内存空间，程序都根据逻辑内存进行编程。<br>而OS的MEM内存管理模块,则负责将逻辑内存地址映射到物理内存地址，并保证不同逻辑内存空间的边界安全。这就是虚拟内存(VM)。</p>
+<h3 id="0x221-Page和内存寻址"><a href="#0x221-Page和内存寻址" class="headerlink" title="0x221 Page和内存寻址"></a>0x221 Page和内存寻址</h3><p>在内存中，最小的操作单位是页(page）,通常是4KB,ARM64使用了16KB,有一些OS还会实现支持Huge Page,用于操作大块的数据等。</p>
+<p>使用VM就实现了内存页的离散存储。也就是一份连续的数据，可以分割成多个页，加载到离散的物理内存空间。因为内存页加载是离散的，所以需要OS进行内存寻址，维护映射关系。</p>
+<p>现代操作系统都使用段页式，进行组织和索引。具体可看Linux的内存寻址，需要查询好几个段表页表索引表，过程复杂，不在本文讨论范围。</p>
+<h3 id="0x222-Page-Share"><a href="#0x222-Page-Share" class="headerlink" title="0x222 Page Share"></a>0x222 Page Share</h3><p>一个page，如果它是只读到，而多个进程需要访问它，那么就可以共享它，只需要把多个逻辑地址映射到同一个内存地址就可以了。</p>
+<h3 id="0x223-Page-Fault-LoadOnDemond"><a href="#0x223-Page-Fault-LoadOnDemond" class="headerlink" title="0x223 Page Fault (LoadOnDemond)"></a>0x223 Page Fault (LoadOnDemond)</h3><p>一份大数据，包括了1000个页,而程序要访问它的第33,135,765页。如果没有VM，那么通常需要把这份数据加载到内存中，然后访问相应地址。而通过VM，我们可以直接访问这个地址，这时候，OS会发现页没有加载在RAM中，于是会产生一个Page Fault,随后触发加载该页的操作。</p>
+<p>可以很明显地看出，前者加载了1000页，后者加载了3页，并且是lazy和离散的模式。</p>
+<h3 id="0x224-Dirty-Page"><a href="#0x224-Dirty-Page" class="headerlink" title="0x224 Dirty Page"></a>0x224 Dirty Page</h3><p>一个Page，从磁盘加载进内存，是可写的，它被加载到内存中后，被修改了，这时候，该页和磁盘的原始数据就不一致了，也就是脏了。需要写出到磁盘。<br>也就是一个Page，如果被修改了，那会被标记为脏页。</p>
+<h3 id="0x222-CopyOnWrite"><a href="#0x222-CopyOnWrite" class="headerlink" title="0x222 CopyOnWrite"></a>0x222 CopyOnWrite</h3><p>如果多个进程需要用到同一个只读页，之前说了，可以共享它。但如果是一份可写的数据呢。</p>
+<p>通常会先共享它，当进程C修改它了，那么会Copy一份Page，加载到新申请的RAM地址，并将进程C的逻辑地址映射指向新页，并修改它。</p>
+<h1 id="0x3-iOS内存加载背景"><a href="#0x3-iOS内存加载背景" class="headerlink" title="0x3 iOS内存加载背景"></a>0x3 iOS内存加载背景</h1><h2 id="0x31-ASLR"><a href="#0x31-ASLR" class="headerlink" title="0x31 ASLR"></a>0x31 ASLR</h2><p>ASLR(Address space layout randomization)是一种常见的内存安全机制，广泛应用于现代操作系统。</p>
+<p>通过上文的分析，我们已经清楚了，通过分析镜像文件，我们知道Image中各个Segment和Secion的逻辑地址。</p>
+<p>那么在运行时，如果Image从固定地址开始加载，我们很容易计算所有符号的运行时逻辑地址。只要在运行时注入进程，就能准确地用地址操作所有数据和行为。</p>
+<p>那么简单地办法就是，在加载镜像时，对于镜像的运行时逻辑地址进行随机偏移。这样，仅仅通过逆向静态分析获得的地址，也不能直接使用了。</p>
+<p>这是一个简单有效的安全机制，但只要知道进程中各个模块在运行时的加载偏移，就能计算得到正确的运行时地址。</p>
+<h2 id="0x32-Code-Signature"><a href="#0x32-Code-Signature" class="headerlink" title="0x32 Code Signature"></a>0x32 Code Signature</h2><p>签名机制，通常是说用一把”钥匙”,输入特定的计算过程，给原始文件做一次转换，而这个过程是可逆的。</p>
+<p>iOS签名使用非对称签名：</p>
+<ol>
+<li>本地用密钥签名,得到签名包</li>
+<li>上传给苹果，苹果用公钥解</li>
+<li>苹果用发布私钥签名</li>
+<li>用户下载运行App包，iOS使用本机的公钥解 </li>
+</ol>
+<p>从以上过程可以看出，签名流程保证了App安装包从提交到用户安装，是无法被篡改的。</p>
+<p><strong>但是</strong>如果在运行时，我们通过各种动态库，使用page fault,lazy load，怎么保证运行时加载的数据是不被篡改的？</p>
+<ul>
+<li>我们已知内存是按页加载的</li>
+<li>os的内存管理会用lazy的方式加载页</li>
+<li>需要保证加载页没有被篡改</li>
+<li>对页签名</li>
+<li>页hash值保存在__LINKEDIT</li>
+</ul>
+<p>这就是苹果的逻辑，每一个加载的页，都是被签名的，并需要在加载阶段进行检验。</p>
+<h1 id="0x4-pre-main启动流程"><a href="#0x4-pre-main启动流程" class="headerlink" title="0x4 pre_main启动流程"></a>0x4 pre_main启动流程</h1><p>正式开始介绍App main函数前的启动阶段。</p>
+<p>首先是OS fork一个新进程，完成初始化进程，并开始加载操作。</p>
+<h2 id="0x41-exex"><a href="#0x41-exex" class="headerlink" title="0x41 exex()"></a>0x41 exex()</h2><ol>
+<li>由内核调用；</li>
+<li>内核使用ASLR将可执行文件映射到一个随机地址</li>
+<li>读取可执行文件header</li>
+<li>开始执行Load commands </li>
+</ol>
+<h2 id="0x42-设置低址零页段"><a href="#0x42-设置低址零页段" class="headerlink" title="0x42 设置低址零页段"></a>0x42 设置低址零页段</h2><ol>
+<li>标记可执行镜像随机地址之前的内存空间为0页的地址段</li>
+<li>标记为不可访问的区域</li>
+<li>64bit OS是4G</li>
+</ol>
+<h2 id="0x43-加载DYLD"><a href="#0x43-加载DYLD" class="headerlink" title="0x43 加载DYLD"></a>0x43 加载DYLD</h2><p>接下来需要加载动态库。动态库的加载需要有两个步骤：</p>
+<ol>
+<li>分析动态库的依赖关系</li>
+<li>加载这些互相依赖的动态库</li>
+</ol>
+<p>但这些工作，需要有人来做，所以我们需要一个帮手——动态库加载器。<br>在OSX下，就是DYLD(Dynamic Liberary Loader)。</p>
+<h2 id="0x44-加载Dylib"><a href="#0x44-加载Dylib" class="headerlink" title="0x44 加载Dylib"></a>0x44 加载Dylib</h2><h3 id="0x441-分析动态库依赖，映射地址空间"><a href="#0x441-分析动态库依赖，映射地址空间" class="headerlink" title="0x441 分析动态库依赖，映射地址空间"></a>0x441 分析动态库依赖，映射地址空间</h3><ol>
+<li>从动态库头部读取信息，并解析依赖关系 </li>
+<li>找到这些动态库mach-o文件</li>
+<li>找到的mach-o都要map到地址空间中，使用aslr</li>
+<li>for each mach-o：<ol>
+<li>dlopen()</li>
+<li>read header</li>
+<li>validate</li>
+<li>register code Signature</li>
+<li>call mmap() for each segment</li>
+</ol>
+</li>
+</ol>
+<h3 id="0x442-rebase-dylib-image"><a href="#0x442-rebase-dylib-image" class="headerlink" title="0x442 rebase dylib image"></a>0x442 rebase dylib image</h3><ol>
+<li>上一步的3中提到，所有dylib通过aslr被随机map到了可用的地址空间</li>
+<li>那么动态库内的指针在编译期是不知道实际的加载地址的，所以在假定起始地址和实际起始地址间会有一个偏移</li>
+<li>我们需要将dylib内部所有的数据指针增加偏移量</li>
+<li>这会导致整个__DATA区的连续页都发生 page fault,加载到内存中</li>
+<li>这里会造成大量IO操作</li>
+</ol>
+<h3 id="0x443-bind-dylib-image"><a href="#0x443-bind-dylib-image" class="headerlink" title="0x443 bind dylib image"></a>0x443 bind dylib image</h3><ol>
+<li>从符号表查找符号</li>
+<li>更新到相应的动态库链接符号对应的指针中</li>
+<li>主要是CPU操作， IO较少</li>
+</ol>
+<h3 id="0x444-准备ObjC运行环境"><a href="#0x444-准备ObjC运行环境" class="headerlink" title="0x444 准备ObjC运行环境"></a>0x444 准备ObjC运行环境</h3><ol>
+<li>大多数OC的准备工作在 rebase 和 binding过程中完成了</li>
+<li>注册所有OC类</li>
+<li>更新所有Non-fragile ivars的偏移量 </li>
+<li>插入category方法</li>
+<li>检查SEL的唯一性</li>
+</ol>
+<p>关于Non-fragile ivars，参考这篇文章 (<a href="http://www.jianshu.com/p/3b219ab86b09" target="_blank" rel="external">http://www.jianshu.com/p/3b219ab86b09</a>)</p>
+<h3 id="0x445-运行初始化方法"><a href="#0x445-运行初始化方法" class="headerlink" title="0x445 运行初始化方法"></a>0x445 运行初始化方法</h3><ol>
+<li>C++ iniializer for statically allocated objects</li>
+<li>Objc + load (deprecated)</li>
+<li>按照动态库依赖的关系，自下往上调用各动态库的初始化方法</li>
+</ol>
+<h3 id="0x45-main"><a href="#0x45-main" class="headerlink" title="0x45 main() !"></a>0x45 main() !</h3><p>最后，DYLD调用main()! 终于到了运行main函数的阶段，和上篇接上了。</p>
+<h2 id="0x5-pre-main耗时调试"><a href="#0x5-pre-main耗时调试" class="headerlink" title="0x5 pre_main耗时调试"></a>0x5 pre_main耗时调试</h2><h2 id="0x6-pre-main优化建议"><a href="#0x6-pre-main优化建议" class="headerlink" title="0x6 pre_main优化建议"></a>0x6 pre_main优化建议</h2><h1 id="0x7-更多DYLD"><a href="#0x7-更多DYLD" class="headerlink" title="0x7 更多DYLD"></a>0x7 更多DYLD</h1><h2 id="0x71-DYLD2世代"><a href="#0x71-DYLD2世代" class="headerlink" title="0x71 DYLD2世代"></a>0x71 DYLD2世代</h2><h2 id="0x72-DYLD3世代"><a href="#0x72-DYLD3世代" class="headerlink" title="0x72 DYLD3世代"></a>0x72 DYLD3世代</h2><p>#参考</p>
+<pre>
+
+【1】https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html
+【2】https://www.objc.io/issues/6-build-tools/mach-o-executables/#mach-o
+【3】https://developer.apple.com/videos/play/wwdc2017/413/
+【4】https://developer.apple.com/videos/play/wwdc2016/406/
+
+</pre>
+
+
+                <hr>
+                
+
+                <ul class="pager">
+                    
+                    
+                    <li class="next">
+                        <a href="/2017/10/22/first/" data-toggle="tooltip" data-placement="top"
+                           title="iOS App如何启动(一)">Next Post &rarr;</a>
+                    </li>
+                    
+                </ul>
+
+                
+
+                
+
+
+                <!--加入新的评论系统-->
+                
+            </div>
+
+            <div class="hidden-xs col-sm-3 toc-col">
+                <div class="toc-wrap">
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#0x0-回顾"><span class="toc-text">0x0 回顾</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x1-几个名词-令人头大的各种”库”"><span class="toc-text">0x1 几个名词 - 令人头大的各种”库”</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-什么是Image？"><span class="toc-text">0x11 什么是Image？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-什么是可执行文件，静态库，动态库，私有库，共享库？"><span class="toc-text">0x12 什么是可执行文件，静态库，动态库，私有库，共享库？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-什么是mach-o-Framework-Bundle-Universal-File"><span class="toc-text">0x13 什么是mach-o, Framework, Bundle, Universal File</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-Universal-File"><span class="toc-text">0x13 Universal File</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x14-Bundle-和Framework"><span class="toc-text">0x14 Bundle 和Framework</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x2-OS内存概述"><span class="toc-text">0x2 OS内存概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-史前时代"><span class="toc-text">0x21 史前时代</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x22-VM"><span class="toc-text">0x22 VM</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#0x221-Page和内存寻址"><span class="toc-text">0x221 Page和内存寻址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x222-Page-Share"><span class="toc-text">0x222 Page Share</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x223-Page-Fault-LoadOnDemond"><span class="toc-text">0x223 Page Fault (LoadOnDemond)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x224-Dirty-Page"><span class="toc-text">0x224 Dirty Page</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x222-CopyOnWrite"><span class="toc-text">0x222 CopyOnWrite</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x3-iOS内存加载背景"><span class="toc-text">0x3 iOS内存加载背景</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x31-ASLR"><span class="toc-text">0x31 ASLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x32-Code-Signature"><span class="toc-text">0x32 Code Signature</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x4-pre-main启动流程"><span class="toc-text">0x4 pre_main启动流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x41-exex"><span class="toc-text">0x41 exex()</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x42-设置低址零页段"><span class="toc-text">0x42 设置低址零页段</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x43-加载DYLD"><span class="toc-text">0x43 加载DYLD</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x44-加载Dylib"><span class="toc-text">0x44 加载Dylib</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#0x441-分析动态库依赖，映射地址空间"><span class="toc-text">0x441 分析动态库依赖，映射地址空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x442-rebase-dylib-image"><span class="toc-text">0x442 rebase dylib image</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x443-bind-dylib-image"><span class="toc-text">0x443 bind dylib image</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x444-准备ObjC运行环境"><span class="toc-text">0x444 准备ObjC运行环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x445-运行初始化方法"><span class="toc-text">0x445 运行初始化方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#0x45-main"><span class="toc-text">0x45 main() !</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x5-pre-main耗时调试"><span class="toc-text">0x5 pre_main耗时调试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x6-pre-main优化建议"><span class="toc-text">0x6 pre_main优化建议</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#0x7-更多DYLD"><span class="toc-text">0x7 更多DYLD</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x71-DYLD2世代"><span class="toc-text">0x71 DYLD2世代</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x72-DYLD3世代"><span class="toc-text">0x72 DYLD3世代</span></a></li></ol></li></ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Sidebar Container -->
+
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+
+                <!-- Friends Blog -->
+                
+            </div>
+        </div>
+
+    </div>
+</article>
+
+
+
+
+
+
+
+<!-- Footer -->
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 text-center">
+                <br>
+                <ul class="list-inline text-center">
+                
+                
+                
+
+                
+
+                
+
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Rabbit Hole 2017
+                    <br>
+                    <span id="busuanzi_container_site_pv" style="font-size: 12px;">PV: <span id="busuanzi_value_site_pv"></span> Times</span>
+                    <br>
+                </p>
+
+                
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/blog.js"></script>
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("http://yoursite.com/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+<!-- swiftype -->
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+  (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+  e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install','','2.0.0');
+</script>
+
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<!--wechat title img-->
+<img class="wechat-title-img" src="">
+</body>
+
+</html>
